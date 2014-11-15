@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">AndroMon</string>
+    <string name="welcome">Welcome to AndroMon, Android USB Monitor!</string>
+
+</resources>
