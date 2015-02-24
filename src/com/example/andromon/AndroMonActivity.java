@@ -4,6 +4,7 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.concurrent.ArrayBlockingQueue;
 
 import android.app.Activity;
 import android.app.PendingIntent;
@@ -13,13 +14,19 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Point;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.OnTouchListener;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,6 +35,11 @@ public class AndroMonActivity extends Activity {
 	private static final String ACTION_USB_PERMISSION =
     	    "com.android.example.USB_PERMISSION";
 
+	public static ArrayBlockingQueue<Point> mousePoints = new ArrayBlockingQueue<Point>(1000);
+	private Thread mouseThread;
+	private MyReceiver myReceiver;
+	private boolean stopRequested = false;
+	private Point lastPosition;
 
 	private PendingIntent mPermissionIntent;
 	private UsbManager manager = null;
@@ -35,12 +47,17 @@ public class AndroMonActivity extends Activity {
 	private TextView textView = null;
 	private Button getPictureButton;
 	private Button connectButton;
+	private Button writeTextButton;
+	private Button keyboardButton;
+	private LinearLayout linearLayout;
 	private ImageView imageView;
 	ParcelFileDescriptor mFileDescriptor = null;
     FileInputStream mInputStream = null;
     FileOutputStream mOutputStream = null;
     FileDescriptor fd = null;
     int i = 0;
+    
+    float downx, downy, upx, upy;
     
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
     	 
@@ -80,11 +97,66 @@ public class AndroMonActivity extends Activity {
         getPictureButton = (Button)this.findViewById(R.id.button1);
         connectButton = (Button) this.findViewById(R.id.button2);
         imageView = (ImageView)this.findViewById(R.id.imageView1);
+        writeTextButton = (Button)this.findViewById(R.id.button3);
+        keyboardButton = (Button)this.findViewById(R.id.keyboardButton);
+        linearLayout = (LinearLayout)this.findViewById(R.id.linearLayout);
         
         mPermissionIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(ACTION_USB_PERMISSION), 0);
     	IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
     	registerReceiver(mUsbReceiver, filter);
         
+    	myReceiver = new MyReceiver();
+    	IntentFilter intentFilter = new IntentFilter();
+    	intentFilter.addAction(MouseService.Mouse_Service_Action);
+    	registerReceiver(myReceiver, intentFilter);
+    	
+    	//Start service
+        /*Intent intent = new Intent(AndroMonActivity.this,
+          MouseService.class);
+        startService(intent);*/
+        
+        mouseThread = new Thread(){
+        	public void run(){
+        		stopRequested = false;
+        		lastPosition = new Point(0, 0);
+        		byte data[] = new byte[8];
+        		int i = 0;
+        		
+        		while (!stopRequested){
+        			try {
+        				Point point = AndroMonActivity.mousePoints.take();
+        				
+        				data[i+1] = (byte) (point.x);// - lastPosition.x);
+        				data[i+3] = (byte) (point.y);// - lastPosition.y);
+        				data[i+0] = point.x < 0.0 ? (byte)1 : (byte)0; 
+        				data[i+2] = point.y < 0.0 ? (byte)1 : (byte)0;
+        				data[i+1] = (byte) Math.abs(point.x);
+        				data[i+3] = (byte) Math.abs(point.y);
+        				lastPosition = point;
+        				
+        				i += 2;
+        				
+        				if (i == 8 || AndroMonActivity.mousePoints.size() == 0){
+        					sendMouseData(data);
+        					i = 0;
+        				}
+        			} 
+        			catch (InterruptedException e) {
+        				System.out.println("Mouse Point Fetching Interrupted");
+        			}
+        		}
+        	}
+        };
+        
+        keyboardButton.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				InputMethodManager inputMethodManager=(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+			    inputMethodManager.toggleSoftInputFromWindow(linearLayout.getApplicationWindowToken(), InputMethodManager.SHOW_FORCED, 0);
+				
+			}
+		});
         
         getPictureButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -118,20 +190,39 @@ public class AndroMonActivity extends Activity {
                     try {
     					mInputStream.close();
     				} catch (IOException e) {
-    					// TODO Auto-generated catch block
     					e.printStackTrace();
     				}
                     try {
     					mOutputStream.close();
     				} catch (IOException e) {
-    					// TODO Auto-generated catch block
     					e.printStackTrace();
     				}
                     try {
     					mFileDescriptor.close();
     				} catch (IOException e) {
-    					// TODO Auto-generated catch block
     					e.printStackTrace();
+    				}
+            	}
+            	catch (Exception ex){
+            		textView.setText("Moha bipod" + ex.getMessage());
+            	}
+            	
+            }
+        });
+        
+        writeTextButton.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+            	textView.setText("Writing");
+            	try{
+            		Toast.makeText(getApplicationContext(), "Writing", Toast.LENGTH_SHORT).show();
+                	byte buffer[] = {64,65,66,67};
+                	try {
+                		mOutputStream.write(buffer);
+                		
+    				} catch (Exception e1) {
+    					textView.setText("Error again");
+    					Toast.makeText(getApplicationContext(), "Error again", Toast.LENGTH_SHORT).show();
+    					e1.printStackTrace();
     				}
             	}
             	catch (Exception ex){
@@ -147,9 +238,141 @@ public class AndroMonActivity extends Activity {
             	
             	manager = (UsbManager) getSystemService(Context.USB_SERVICE);
             	UsbAccessory[] accessoryList = manager.getAccessoryList();
+            	Toast.makeText(getApplicationContext(), "" + accessoryList.length, Toast.LENGTH_LONG).show();
             	manager.requestPermission(accessoryList[0], mPermissionIntent);
             	
             }
         });
+        
+        imageView.setOnTouchListener(new OnTouchListener() {
+			
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				int eid = event.getAction();
+				//Toast.makeText(getApplicationContext(), "TouchEvent", Toast.LENGTH_SHORT).show();
+				switch (eid){
+					case MotionEvent.ACTION_DOWN:
+						downx = event.getX();
+						downy = event.getY();
+						break;
+						
+					case MotionEvent.ACTION_MOVE:
+					case MotionEvent.ACTION_UP:
+						upx = event.getX();
+						upy = event.getY();
+						
+						//Toast.makeText(getApplicationContext(), "x=" + upx + "y=" + upy, Toast.LENGTH_SHORT).show();
+						
+						int x = (int)Math.ceil((double)(upx - downx));
+						int y = (int)Math.ceil((double)(upy - downy));
+						
+						if (Math.abs(x) > 0) downx = upx;
+						if (Math.abs(y) > 0) downy = upy;
+						
+						if ((Math.abs(x) > 0 || Math.abs(y) > 0) && mousePoints.size() < 1000);
+						{
+							try{
+								Toast.makeText(getApplicationContext(), "x=" + x + "y=" + y, Toast.LENGTH_SHORT).show();
+								mousePoints.add(new Point(x, y));
+							}
+							catch(Exception ex){
+								
+							}
+						}
+							
+						break;
+					
+					default:
+						break;
+				}	
+					
+				return true;
+			}
+		});
+        
+        mouseThread.start();
+    }
+    
+    @Override
+    protected void onStop() {
+        try {
+			mInputStream.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+        try {
+			mOutputStream.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+        try {
+			mFileDescriptor.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+        
+        stopRequested = true;
+        
+    	super.onStop();
+    }
+    
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+    	Toast.makeText(getApplicationContext(), "" + keyCode, Toast.LENGTH_SHORT).show();
+    	return super.onKeyUp(keyCode, event);
+    }
+    
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+    	// TODO Auto-generated method stub
+    	return super.onKeyDown(keyCode, event);
+    }
+    
+    private void sendMouseData(byte data[]){
+    	byte buffer[] = {0,0,0,0,0,0,0,0};
+
+		if (data.length < buffer.length){
+			//System.arraycopy(data, 0, buffer, 0, data.length);
+		}
+		
+		try{
+        	try {
+        		mOutputStream.write(data);
+        		
+			} catch (Exception e1) {
+				e1.printStackTrace();
+			}
+    	}
+    	catch (Exception ex){
+    	}
+    }
+    
+    private class MyReceiver extends BroadcastReceiver{
+
+		@Override
+		public void onReceive(Context arg0, Intent arg1) {
+			byte buffer[] = {0,0,0,0,0,0,0,0};
+			byte data[] = arg1.getByteArrayExtra("DATA");
+
+			Toast.makeText(getApplicationContext(), "Receiver", Toast.LENGTH_SHORT).show();
+			if (data.length < buffer.length){
+				System.arraycopy(data, 0, buffer, 0, data.length);
+			}
+			
+			try{
+            	try {
+            		mOutputStream.write(buffer);
+            		
+				} catch (Exception e1) {
+					textView.setText("Error again");
+					Toast.makeText(getApplicationContext(), "Error again", Toast.LENGTH_SHORT).show();
+					e1.printStackTrace();
+				}
+        	}
+        	catch (Exception ex){
+        		textView.setText("Moha bipod" + ex.getMessage());
+        	}
+		}
+    	
     }
 }

@@ -1,21 +1,23 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/linearLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context="${relativePackage}.${activityClass}" >
-    
-    <ImageView
-        android:id="@+id/imageView1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:src="@drawable/ic_launcher" />
 
     <TextView
         android:id="@+id/textView1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:editable="true"
         android:text="@string/welcome" />
+    
+    <Button
+        android:id="@+id/button3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Write Text" />
 
     <Button
         android:id="@+id/button1"
@@ -28,5 +30,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Connect" />
+    
+    <Button 
+        android:id="@+id/keyboardButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Open Keyboard" />
+        
+    <ImageView
+        android:id="@+id/imageView1"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/ic_launcher" />
 
 </LinearLayout>
