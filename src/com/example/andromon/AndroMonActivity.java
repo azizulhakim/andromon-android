@@ -17,6 +17,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.view.KeyEvent;
@@ -76,6 +77,36 @@ public class AndroMonActivity extends Activity {
                                 fd = mFileDescriptor.getFileDescriptor();
                                 mInputStream = new FileInputStream(fd);
                                 mOutputStream = new FileOutputStream(fd);
+                                
+                                AsyncTask<FileOutputStream, Integer, Integer> task = new AsyncTask<FileOutputStream, Integer, Integer>() {
+
+									@Override
+									protected Integer doInBackground(
+											FileOutputStream... params) {
+										byte data[] = {3,1,0,0,0,0,0,0};
+										data[2] = (byte)((GlobalAttributes.DISPLAYHEIGHT & 0xFF00) >> 8);
+										data[3] = (byte)(GlobalAttributes.DISPLAYHEIGHT & 0xFF);
+										
+										data[4] = (byte)((GlobalAttributes.DISPLAYWIDTH & 0xFF00) >> 8);
+										data[5] = (byte)(GlobalAttributes.DISPLAYWIDTH & 0xFF);
+										
+										try{
+											params[0].write(data);
+										}
+										catch(Exception ex){
+											return -1;
+										}
+										
+										return 0;
+									}
+                                	
+									@Override
+									protected void onPostExecute(Integer result) {
+										
+									}
+								};
+
+								task.execute(mOutputStream);
                             }
                         }
                     }
@@ -235,6 +266,9 @@ public class AndroMonActivity extends Activity {
         
         connectButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
+            	GlobalAttributes.DISPLAYHEIGHT = imageView.getHeight();
+                GlobalAttributes.DISPLAYWIDTH = imageView.getWidth();
+                
             	textView.setText("connecting");
             	
             	manager = (UsbManager) getSystemService(Context.USB_SERVICE);
