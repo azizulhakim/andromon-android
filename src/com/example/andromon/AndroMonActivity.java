@@ -124,6 +124,9 @@ public class AndroMonActivity extends Activity {
         		
         		while (!stopRequested){
         			try {
+        				data[i++] = 2;	// this is mouse data
+        				data[i++] = 0;
+        				
         				Point point = AndroMonActivity.mousePoints.take();
         				
         				data[i+1] = (byte) (point.x);// - lastPosition.x);
@@ -135,11 +138,7 @@ public class AndroMonActivity extends Activity {
         				lastPosition = point;
         				
         				i += 2;
-        				
-        				if (i == 8 || AndroMonActivity.mousePoints.size() == 0){
-        					sendMouseData(data);
-        					i = 0;
-        				}
+        				sendMouseData(data);
         			} 
         			catch (InterruptedException e) {
         				System.out.println("Mouse Point Fetching Interrupted");
