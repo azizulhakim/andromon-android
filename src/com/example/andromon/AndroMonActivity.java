@@ -4,7 +4,7 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 
 import android.app.Activity;
 import android.app.PendingIntent;
@@ -35,11 +35,12 @@ public class AndroMonActivity extends Activity {
 	private static final String ACTION_USB_PERMISSION =
     	    "com.android.example.USB_PERMISSION";
 
-	public static ArrayBlockingQueue<Point> mousePoints = new ArrayBlockingQueue<Point>(1000);
+	public static SynchronousQueue<Point> mousePoints = new SynchronousQueue<Point>();
 	private Thread mouseThread;
 	private MyReceiver myReceiver;
 	private boolean stopRequested = false;
 	private Point lastPosition;
+	
 
 	private PendingIntent mPermissionIntent;
 	private UsbManager manager = null;
@@ -114,16 +115,17 @@ public class AndroMonActivity extends Activity {
         /*Intent intent = new Intent(AndroMonActivity.this,
           MouseService.class);
         startService(intent);*/
-        
+    	
         mouseThread = new Thread(){
         	public void run(){
         		stopRequested = false;
         		lastPosition = new Point(0, 0);
         		byte data[] = new byte[8];
-        		int i = 0;
+        		
         		
         		while (!stopRequested){
         			try {
+        				int i = 0;
         				data[i++] = 2;	// this is mouse data
         				data[i++] = 0;
         				
@@ -248,7 +250,6 @@ public class AndroMonActivity extends Activity {
 			@Override
 			public boolean onTouch(View v, MotionEvent event) {
 				int eid = event.getAction();
-				//Toast.makeText(getApplicationContext(), "TouchEvent", Toast.LENGTH_SHORT).show();
 				switch (eid){
 					case MotionEvent.ACTION_DOWN:
 						downx = event.getX();
@@ -271,7 +272,6 @@ public class AndroMonActivity extends Activity {
 						if ((Math.abs(x) > 0 || Math.abs(y) > 0) && mousePoints.size() < 1000);
 						{
 							try{
-								Toast.makeText(getApplicationContext(), "x=" + x + "y=" + y, Toast.LENGTH_SHORT).show();
 								mousePoints.add(new Point(x, y));
 							}
 							catch(Exception ex){
@@ -317,7 +317,26 @@ public class AndroMonActivity extends Activity {
     
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
-    	Toast.makeText(getApplicationContext(), "" + keyCode, Toast.LENGTH_SHORT).show();
+    	
+    	Toast.makeText(getApplicationContext(), "" + (char)event.getUnicodeChar(), Toast.LENGTH_SHORT).show();
+    	
+    	if (event.getUnicodeChar() >= 'A' && event.getUnicodeChar() <= 'Z'){
+    		sendKeyboardData(event.getUnicodeChar() - 'A' + 4);
+    	}
+    	else if(event.getUnicodeChar() >= 'a' && event.getUnicodeChar() <= 'z'){
+    		sendKeyboardData(event.getUnicodeChar() - 'a' + 4);
+    	}
+    	else if(event.getUnicodeChar() >= '1' && event.getUnicodeChar() <= '9'){
+    		sendKeyboardData(event.getUnicodeChar() - '0' + 30);
+    	}
+    	else if(event.getUnicodeChar() >= '0' && event.getUnicodeChar() <= '\\'){
+    		sendKeyboardData(event.getUnicodeChar() - '0' + 39);
+    	}
+    	else if(event.getUnicodeChar() >= ';' && event.getUnicodeChar() <= '/'){
+    		sendKeyboardData(event.getUnicodeChar() - ';' + 51);
+    	}
+    	//sendKeyboardData();
+    	
     	return super.onKeyUp(keyCode, event);
     }
     
@@ -344,6 +363,28 @@ public class AndroMonActivity extends Activity {
     	}
     	catch (Exception ex){
     	}
+    }
+    
+    private void sendKeyboardData(int keyIndex){
+    	byte buffer[] = {1,0,0,0,0,0,0,0};
+    	buffer[2] = (byte)keyIndex;
+
+		Toast.makeText(getApplicationContext(), "Receiver", Toast.LENGTH_SHORT).show();
+		
+		try{
+        	try {
+        		mOutputStream.write(buffer);
+        		
+			} catch (Exception e1) {
+				textView.setText("Error again");
+				Toast.makeText(getApplicationContext(), "Error again", Toast.LENGTH_SHORT).show();
+				e1.printStackTrace();
+			}
+    	}
+    	catch (Exception ex){
+    		textView.setText("Moha bipod" + ex.getMessage());
+    	}
+
     }
     
     private class MyReceiver extends BroadcastReceiver{
