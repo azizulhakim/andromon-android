@@ -6,6 +6,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.concurrent.SynchronousQueue;
 
+import com.example.andromon.R;
+
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -31,7 +33,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class AndroMonActivity extends Activity {
+public class AndroMonActivity extends Activity{
 
 	private static final String ACTION_USB_PERMISSION =
     	    "com.android.example.USB_PERMISSION";
@@ -50,6 +52,7 @@ public class AndroMonActivity extends Activity {
 	private Button getPictureButton;
 	private Button connectButton;
 	private Button writeTextButton;
+	private Button getTextButton;
 	private Button keyboardButton;
 	private LinearLayout linearLayout;
 	private ImageView imageView;
@@ -129,6 +132,7 @@ public class AndroMonActivity extends Activity {
         getPictureButton = (Button)this.findViewById(R.id.button1);
         connectButton = (Button) this.findViewById(R.id.button2);
         imageView = (ImageView)this.findViewById(R.id.imageView1);
+        getTextButton = (Button)this.findViewById(R.id.getText);
         writeTextButton = (Button)this.findViewById(R.id.button3);
         keyboardButton = (Button)this.findViewById(R.id.keyboardButton);
         linearLayout = (LinearLayout)this.findViewById(R.id.linearLayout);
@@ -264,6 +268,36 @@ public class AndroMonActivity extends Activity {
             }
         });
         
+        getTextButton.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+            	textView.setText("Fetched Audio Data: ");
+            	try{
+            		Toast.makeText(getApplicationContext(), "Reading", Toast.LENGTH_SHORT).show();
+                	byte buffer[] = new byte[4];
+                	try {
+                		mInputStream.read(buffer, 0, 4);
+                		String s = "";
+                		for (int i=0; i<buffer.length; i++){
+                			s += "  " + (int)buffer[i] + "  ";
+                		}
+                		
+                		textView.setText(s);
+                		
+    				} catch (Exception e1) {
+    					textView.setText("Error again:" + e1.getMessage());
+    					Toast.makeText(getApplicationContext(), "Error again", Toast.LENGTH_SHORT).show();
+    					e1.printStackTrace();
+    				}
+            	}
+            	catch (Exception ex){
+            		textView.setText("Moha bipod" + ex.getMessage());
+            	}
+            	
+            }
+		});
+        
         connectButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
             	GlobalAttributes.DISPLAYHEIGHT = imageView.getHeight();
@@ -279,8 +313,7 @@ public class AndroMonActivity extends Activity {
             }
         });
         
-        imageView.setOnTouchListener(new OnTouchListener() {
-			
+        imageView.setOnTouchListener(new OnTouchListener() {			
 			@Override
 			public boolean onTouch(View v, MotionEvent event) {
 				int eid = event.getAction();

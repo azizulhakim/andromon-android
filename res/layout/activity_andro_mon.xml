@@ -17,6 +17,12 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Write Text" />
+    
+    <Button 
+        android:id="@+id/getText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Get Text" />
 
     <Button
         android:id="@+id/button1"
