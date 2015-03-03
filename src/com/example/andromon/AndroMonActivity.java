@@ -157,12 +157,11 @@ public class AndroMonActivity extends Activity{
         		lastPosition = new Point(0, 0);
         		byte data[] = new byte[8];
         		
-        		
         		while (!stopRequested){
         			try {
         				int i = 0;
-        				data[i++] = 2;	// this is mouse data
-        				data[i++] = 0;
+        				data[i++] = (byte)getResources().getInteger(R.integer.MOUSECONTROL);	// this is mouse data
+        				data[i++] = (byte)getResources().getInteger(R.integer.MOUSEMOVE);
         				
         				Point point = AndroMonActivity.mousePoints.take();
         				
@@ -189,7 +188,7 @@ public class AndroMonActivity extends Activity{
 			@Override
 			public void onClick(View v) {
 				InputMethodManager inputMethodManager=(InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-			    inputMethodManager.toggleSoftInputFromWindow(linearLayout.getApplicationWindowToken(), InputMethodManager.SHOW_FORCED, 0);
+			    inputMethodManager.toggleSoftInputFromWindow(linearLayout.getApplicationWindowToken(), InputMethodManager.SHOW_FORCED, 0); 
 				
 			}
 		});
@@ -433,7 +432,8 @@ public class AndroMonActivity extends Activity{
     }
     
     private void sendKeyboardData(int keyIndex){
-    	byte buffer[] = {1,0,0,0,0,0,0,0};
+    	byte buffer[] = {0,0,0,0,0,0,0,0};
+    	buffer[0] = (byte)getResources().getInteger(R.integer.KEYBOARDCONTROL);
     	buffer[2] = (byte)keyIndex;
 
 		Toast.makeText(getApplicationContext(), "Receiver", Toast.LENGTH_SHORT).show();

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="KEYBOARDCONTROL" type="integer">1</item>
+    <item name="MOUSECONTROL" type="integer">2</item>
+    <item name="CONTROLMESSAGE" type="integer">3</item>
+    
+    
+    <item name="MOUSEMOVE" type="integer">0</item>
+    <item name="MOUSELEFT" type="integer">1</item>
+    <item name="MOUSERIGHT" type="integer">2</item>
+    <item name="MOUSEDOUBLECLICK" type="integer">3</item>
+    <item name="MOUSESINGLECLICK" type="integer">4</item>
+    
+    <item name="CNTRL_RESOLUTION" type="integer">1</item>
+</resources>
