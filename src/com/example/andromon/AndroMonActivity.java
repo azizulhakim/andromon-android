@@ -37,6 +37,13 @@ public class AndroMonActivity extends Activity{
 
 	private static final String ACTION_USB_PERMISSION =
     	    "com.android.example.USB_PERMISSION";
+	
+	private final char KEYCODES[] = {
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,0,0,0,'\t',' ','-','=','[',
+			']','\\','\\',';','\'','`',',','.','/',0,0,0,0,0,0,0
+	};
 
 	public static SynchronousQueue<Point> mousePoints = new SynchronousQueue<Point>();
 	private Thread mouseThread;
@@ -395,11 +402,16 @@ public class AndroMonActivity extends Activity{
     	else if(event.getUnicodeChar() >= '1' && event.getUnicodeChar() <= '9'){
     		sendKeyboardData(event.getUnicodeChar() - '0' + 30);
     	}
-    	else if(event.getUnicodeChar() >= '0' && event.getUnicodeChar() <= '\\'){
+    	else if(event.getUnicodeChar() == '0'){
     		sendKeyboardData(event.getUnicodeChar() - '0' + 39);
     	}
-    	else if(event.getUnicodeChar() >= ';' && event.getUnicodeChar() <= '/'){
-    		sendKeyboardData(event.getUnicodeChar() - ';' + 51);
+    	else{
+    		for (int i=0;i<KEYCODES.length; i++){
+    			if (KEYCODES[i] == event.getUnicodeChar()){
+    				sendKeyboardData(i);
+    				break;
+    			}
+    		}
     	}
     	//sendKeyboardData();
     	
