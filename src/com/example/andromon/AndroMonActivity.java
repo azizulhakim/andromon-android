@@ -22,6 +22,8 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -58,6 +60,7 @@ public class AndroMonActivity extends Activity{
 	private Point lastPosition;
 	
 	private AudioTrack audioTrack;
+	private Handler handler;
 	
 
 	private PendingIntent mPermissionIntent;
@@ -167,10 +170,21 @@ public class AndroMonActivity extends Activity{
     	
     	audioTrack = new  AudioTrack(AudioManager.STREAM_MUSIC, 8000, AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT, AUDIO_BUFFER_SIZE, AudioTrack.MODE_STREAM);
     	
+    	
     	//Start service
         /*Intent intent = new Intent(AndroMonActivity.this,
           MouseService.class);
         startService(intent);*/
+    	
+//    	handler = new Handler() {
+//    		private int count = 0;
+//    	      @Override
+//    	      public void handleMessage(Message msg) {
+//    	    	  textView.append(" " + count);
+//    	    	  count++;
+//    	      }
+//
+//    	    };
     	
         mouseThread = new Thread(){
         	public void run(){
@@ -208,14 +222,19 @@ public class AndroMonActivity extends Activity{
         	public void run(){
         		stopRequested = false;
         		int offset = 0;
+        		int count = 0;
         		
         		while (!stopRequested){
         			try {
         				byte[] data = AndroMonActivity.audioData.take();
         				if (data != null){
+        					System.out.println("Playing: " + count);
         					audioTrack.write(data, offset, data.length);
         					offset += data.length;
         					offset %= AUDIO_BUFFER_SIZE;
+        					//handler.sendEmptyMessage(0);
+        					System.out.println("Played: " + count);
+        					count++;
         				}
         			} 
         			catch (InterruptedException e) {
@@ -296,10 +315,18 @@ public class AndroMonActivity extends Activity{
 				new Thread(){
 					public void run(){
 						byte buffer[] = new byte[4096];
+						int count = 1;
 						while(!stopRequested){
 							try {
 								mInputStream.read(buffer, 0, 4096);
-								audioData.add(buffer);
+	        					System.out.println("Adding: " + count);
+								audioData.put(buffer);
+								System.out.println("Add: " + count);
+								count++;
+							} catch (InterruptedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+								
 							} catch (IOException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
