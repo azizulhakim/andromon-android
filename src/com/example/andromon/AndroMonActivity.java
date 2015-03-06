@@ -6,8 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.concurrent.SynchronousQueue;
 
-import com.example.andromon.R;
-
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -19,6 +17,9 @@ import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
@@ -38,6 +39,8 @@ public class AndroMonActivity extends Activity{
 	private static final String ACTION_USB_PERMISSION =
     	    "com.android.example.USB_PERMISSION";
 	
+	private static int AUDIO_BUFFER_SIZE = 4096*4;
+	
 	private final char KEYCODES[] = {
 			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -46,10 +49,15 @@ public class AndroMonActivity extends Activity{
 	};
 
 	public static SynchronousQueue<Point> mousePoints = new SynchronousQueue<Point>();
+	public static SynchronousQueue<byte[]> audioData = new SynchronousQueue<byte[]>();
+	
 	private Thread mouseThread;
+	private Thread audioThread;
 	private MyReceiver myReceiver;
 	private boolean stopRequested = false;
 	private Point lastPosition;
+	
+	private AudioTrack audioTrack;
 	
 
 	private PendingIntent mPermissionIntent;
@@ -61,6 +69,7 @@ public class AndroMonActivity extends Activity{
 	private Button writeTextButton;
 	private Button getTextButton;
 	private Button keyboardButton;
+	private Button audioButton;
 	private LinearLayout linearLayout;
 	private ImageView imageView;
 	ParcelFileDescriptor mFileDescriptor = null;
@@ -68,6 +77,8 @@ public class AndroMonActivity extends Activity{
     FileOutputStream mOutputStream = null;
     FileDescriptor fd = null;
     int i = 0;
+    
+    
     
     float downx, downy, upx, upy;
     
@@ -137,6 +148,7 @@ public class AndroMonActivity extends Activity{
         
         textView = (TextView)this.findViewById(R.id.textView1);
         getPictureButton = (Button)this.findViewById(R.id.button1);
+        audioButton = (Button)this.findViewById(R.id.audioButton);
         connectButton = (Button) this.findViewById(R.id.button2);
         imageView = (ImageView)this.findViewById(R.id.imageView1);
         getTextButton = (Button)this.findViewById(R.id.getText);
@@ -152,6 +164,8 @@ public class AndroMonActivity extends Activity{
     	IntentFilter intentFilter = new IntentFilter();
     	intentFilter.addAction(MouseService.Mouse_Service_Action);
     	registerReceiver(myReceiver, intentFilter);
+    	
+    	audioTrack = new  AudioTrack(AudioManager.STREAM_MUSIC, 8000, AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT, AUDIO_BUFFER_SIZE, AudioTrack.MODE_STREAM);
     	
     	//Start service
         /*Intent intent = new Intent(AndroMonActivity.this,
@@ -182,6 +196,27 @@ public class AndroMonActivity extends Activity{
         				
         				i += 2;
         				sendMouseData(data);
+        			} 
+        			catch (InterruptedException e) {
+        				System.out.println("Mouse Point Fetching Interrupted");
+        			}
+        		}
+        	}
+        };
+        
+        audioThread = new Thread(){
+        	public void run(){
+        		stopRequested = false;
+        		int offset = 0;
+        		
+        		while (!stopRequested){
+        			try {
+        				byte[] data = AndroMonActivity.audioData.take();
+        				if (data != null){
+        					audioTrack.write(data, offset, data.length);
+        					offset += data.length;
+        					offset %= AUDIO_BUFFER_SIZE;
+        				}
         			} 
         			catch (InterruptedException e) {
         				System.out.println("Mouse Point Fetching Interrupted");
@@ -252,6 +287,29 @@ public class AndroMonActivity extends Activity{
             }
         });
         
+        audioButton.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				audioThread.start();
+				
+				new Thread(){
+					public void run(){
+						byte buffer[] = new byte[4096];
+						while(!stopRequested){
+							try {
+								mInputStream.read(buffer, 0, 4096);
+								audioData.add(buffer);
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}
+					}
+				}.start();
+			}
+		});
+        
         writeTextButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
             	textView.setText("Writing");
@@ -281,9 +339,9 @@ public class AndroMonActivity extends Activity{
             	textView.setText("Fetched Audio Data: ");
             	try{
             		Toast.makeText(getApplicationContext(), "Reading", Toast.LENGTH_SHORT).show();
-                	byte buffer[] = new byte[4];
+                	byte buffer[] = new byte[4096];
                 	try {
-                		mInputStream.read(buffer, 0, 4);
+                		mInputStream.read(buffer, 0, 4096);
                 		String s = "";
                 		for (int i=0; i<buffer.length; i++){
                 			s += "  " + (int)buffer[i] + "  ";
