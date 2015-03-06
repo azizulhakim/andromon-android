@@ -1,9 +1,12 @@
 package com.example.andromon;
 
+import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.concurrent.SynchronousQueue;
 
 import android.app.Activity;
@@ -23,7 +26,6 @@ import android.media.AudioTrack;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
@@ -81,7 +83,7 @@ public class AndroMonActivity extends Activity{
     FileDescriptor fd = null;
     int i = 0;
     
-    
+    FileOutputStream fileOutputStream;
     
     float downx, downy, upx, upy;
     
@@ -168,8 +170,16 @@ public class AndroMonActivity extends Activity{
     	intentFilter.addAction(MouseService.Mouse_Service_Action);
     	registerReceiver(myReceiver, intentFilter);
     	
-    	audioTrack = new  AudioTrack(AudioManager.STREAM_MUSIC, 8000, AudioFormat.CHANNEL_IN_STEREO, AudioFormat.ENCODING_PCM_16BIT, AUDIO_BUFFER_SIZE, AudioTrack.MODE_STREAM);
+    	audioTrack = new  AudioTrack(AudioManager.STREAM_MUSIC, 44100, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_8BIT, AUDIO_BUFFER_SIZE, AudioTrack.MODE_STREAM);
     	
+    	try {
+    		File file = new File("/storage/sdcard0/out.txt");
+    		if (!file.exists())file.createNewFile();
+			fileOutputStream = new FileOutputStream(file);
+		} catch (Exception e2) {
+			Toast.makeText(getApplicationContext(), "File Read: " + e2.getMessage(), Toast.LENGTH_LONG).show();
+			e2.printStackTrace();
+		}
     	
     	//Start service
         /*Intent intent = new Intent(AndroMonActivity.this,
@@ -223,7 +233,9 @@ public class AndroMonActivity extends Activity{
         		stopRequested = false;
         		int offset = 0;
         		int count = 0;
+        		boolean flag = false;
         		
+        		audioTrack.play();
         		while (!stopRequested){
         			try {
         				byte[] data = AndroMonActivity.audioData.take();
@@ -241,6 +253,8 @@ public class AndroMonActivity extends Activity{
         				System.out.println("Mouse Point Fetching Interrupted");
         			}
         		}
+        		audioTrack.stop();
+        		audioTrack.release();
         	}
         };
         
@@ -322,6 +336,7 @@ public class AndroMonActivity extends Activity{
 	        					System.out.println("Adding: " + count);
 								audioData.put(buffer);
 								System.out.println("Add: " + count);
+								//fileOutputStream.write(buffer);
 								count++;
 							} catch (InterruptedException e) {
 								// TODO Auto-generated catch block
@@ -331,6 +346,38 @@ public class AndroMonActivity extends Activity{
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
+							
+//							//Reading the file.. 
+////							byte[] buffer = new byte[4096];
+//							InputStream in = null;
+//							int c = 0;
+//							try {
+//								in = getApplicationContext().getResources().openRawResource(R.raw.pcmstereo8ss44100hz);   //new FileInputStream( file );
+//								//in.read(buffer, 0, 44);
+//								while(in.read(buffer) != -1){
+//									audioData.put(buffer);
+//									c++;
+//									System.out.println("data added");
+//								}
+//							} catch (Exception e) {
+//								Toast.makeText(getApplicationContext(), "Exception: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+//								e.printStackTrace();
+//							}finally{
+//								Toast.makeText(getApplicationContext(), "Size = " + c, Toast.LENGTH_SHORT).show();
+//								try {
+//									in.close();
+//								} catch (IOException e) {
+//									// TODO Auto-generated catch block
+//									e.printStackTrace();
+//								}
+//							}
+						}
+						try {
+							fileOutputStream.write(count);
+							fileOutputStream.close();
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
 						}
 					}
 				}.start();
