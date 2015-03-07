@@ -75,6 +75,8 @@ public class AndroMonActivity extends Activity{
 	private Button getTextButton;
 	private Button keyboardButton;
 	private Button audioButton;
+	private Button leftButton;
+	private Button rightButton;
 	private LinearLayout linearLayout;
 	private ImageView imageView;
 	ParcelFileDescriptor mFileDescriptor = null;
@@ -159,6 +161,8 @@ public class AndroMonActivity extends Activity{
         getTextButton = (Button)this.findViewById(R.id.getText);
         writeTextButton = (Button)this.findViewById(R.id.button3);
         keyboardButton = (Button)this.findViewById(R.id.keyboardButton);
+        leftButton = (Button)this.findViewById(R.id.leftButton);
+        rightButton = (Button)this.findViewById(R.id.rightButton);
         linearLayout = (LinearLayout)this.findViewById(R.id.linearLayout);
         
         mPermissionIntent = PendingIntent.getBroadcast(getApplicationContext(), 0, new Intent(ACTION_USB_PERMISSION), 0);
@@ -257,6 +261,31 @@ public class AndroMonActivity extends Activity{
         		audioTrack.release();
         	}
         };
+        
+        leftButton.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				byte[] data = {0,0,0,0,0,0,0,0};
+				data[0] = (byte)getResources().getInteger(R.integer.MOUSECONTROL);	// this is mouse data
+				data[1] = (byte)getResources().getInteger(R.integer.MOUSELEFT);
+				
+				sendMouseData(data);
+				
+			}
+		});
+        
+        rightButton.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View v) {
+				byte[] data = {0,0,0,0,0,0,0,0};
+				data[0] = (byte)getResources().getInteger(R.integer.MOUSECONTROL);	// this is mouse data
+				data[1] = (byte)getResources().getInteger(R.integer.MOUSERIGHT);
+				
+				sendMouseData(data);
+			}
+		});
         
         keyboardButton.setOnClickListener(new View.OnClickListener() {
 			
