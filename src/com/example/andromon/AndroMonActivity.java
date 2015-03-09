@@ -174,7 +174,7 @@ public class AndroMonActivity extends Activity{
     	intentFilter.addAction(MouseService.Mouse_Service_Action);
     	registerReceiver(myReceiver, intentFilter);
     	
-    	audioTrack = new  AudioTrack(AudioManager.STREAM_MUSIC, 44100, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_8BIT, AUDIO_BUFFER_SIZE, AudioTrack.MODE_STREAM);
+    	audioTrack = new  AudioTrack(AudioManager.STREAM_MUSIC, 44100, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT, AUDIO_BUFFER_SIZE, AudioTrack.MODE_STREAM);
     	
     	try {
     		File file = new File("/storage/sdcard0/out.txt");
